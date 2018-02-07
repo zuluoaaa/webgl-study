@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+<canvas id="myCanvas" width="400" height="400" style="border:1px solid red"></canvas>
+
+<script id="2d-vertex-shader" type="vertex-shader">
+    attribute vec4 a_position;
+
+    void main(){
+    gl_Position = a_position;
+    }
+</script>
+<script id="2d-fragment-shader" type="fragment-hader">
+    precision mediump float;
+
+    void main(){
+     gl_FragColor = vec4(1, 0, 0.5, 1);
+    }
+</script>
+<script src="js/utils.js"></script>
+<script>
+    function main(){
+        var canvas = document.getElementById("myCanvas");
+        var gl = canvas.getContext("webgl");
+        if(!gl){
+            return;
+        }
+
+        var vertexShaderSource = document.getElementById("2d-vertex-shader").text;
+        var fragmentShaderSource = document.getElementById("2d-fragment-shader").text;
+
+        var vertexShader = createShader(gl,gl.VERTEX_SHADER,vertexShaderSource);
+        var fragmentShader = createShader(gl,gl.FRAGMENT_SHADER,fragmentShaderSource);
+
+        var program = createProgram(gl,vertexShader,fragmentShader);
+
+        var positionAttributeLocation = gl.getAttribLocation(program,"a_position");
+
+        var positionBuffer = gl.createBuffer();
+
+        gl.bindBuffer(gl.ARRAY_BUFFER,positionBuffer);
+
+        var positions = [
+            0,0,
+            0,0.5,
+            0.7,0
+        ];
+        gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(positions),gl.STATIC_DRAW);
+
+        resizeCanvasToDisplaySize(canvas);
+
+        gl.viewport(0,0,gl.canvas.width,gl.canvas.height);
+        gl.clearColor(0,0,0,0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        gl.useProgram(program);
+        gl.enableVertexAttribArray(positionAttributeLocation);
+        gl.bindBuffer(gl.ARRAY_BUFFER,positionBuffer);
+
+
+        var size = 2;
+        var type = gl.FLOAT;
+        var normalize = false;
+        var stride = 0;
+        var offset = 0;
+
+        gl.vertexAttribPointer(positionAttributeLocation,size,type,normalize,stride,offset);
+
+        var primitiveType = gl.TRIANGLES;
+        var offset = 0;
+        var count = 3;
+        gl.drawArrays(primitiveType,offset,count);
+    }
+
+    main();
+</script>
+</body>
+</html>
