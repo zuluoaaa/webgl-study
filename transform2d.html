@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>transform2d</title>
+</head>
+<body>
+<canvas id="myCanvas" width="600" height="600" style="border:1px solid red"></canvas>
+<div id="vm">
+    <input type="button" value="x++" @click="args.translation[0]++;args.translation.splice(0,0)">
+    <input type="button" value="y++" @click="args.translation[1]++;args.translation.splice(0,0)">
+    <input type="button" value="angle++" @click="args.angleInRadians++">
+    <input type="button" value="angle--" @click="args.angleInRadians--">
+    <input type="button" value="scaleX++" @click="args.scale[0]++;args.scale.splice(0,0)">
+    <input type="button" value="scaleY++" @click="args.scale[1]++;args.scale.splice(0,0)">
+</div>
+<script type="2d-vertex-shader" id="2d-vertex-shader">
+    attribute vec2 a_position;
+
+    uniform mat3 u_matrix;
+
+    void main(){
+    gl_Position = vec4((u_matrix * vec3(a_position, 1)).xy, 0, 1);
+    }
+</script>
+<script type="2d-fragment-shader" id="2d-fragment-shader">
+    precision mediump float;
+
+    uniform vec4 u_color;
+
+    void main(){
+    gl_FragColor = u_color;
+    }
+</script>
+<script src="js/utils.js"></script>
+<script src="js/matrixTransform.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue"></script>
+<script>
+    function main() {
+        var canvas = document.getElementById("myCanvas");
+        var gl = canvas.getContext("webgl");
+        if (!gl) {
+            return;
+        }
+        var vertexShaderSource = document.getElementById("2d-vertex-shader").text;
+        var fragmentShaderSource = document.getElementById("2d-fragment-shader").text;
+
+        var vertexShader = createShader(gl,gl.VERTEX_SHADER,vertexShaderSource);
+        var fragmentShader = createShader(gl,gl.FRAGMENT_SHADER,fragmentShaderSource);
+
+        var program = createProgram(gl,vertexShader,fragmentShader);
+
+        var positionLocaition = gl.getAttribLocation(program,"a_position");
+        var colorLocation = gl.getUniformLocation(program,"u_color");
+        var matrixLocation = gl.getUniformLocation(program,"u_matrix");
+
+        var positionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER,positionBuffer);
+        setGeometry(gl);
+
+        var translation = [100,150];
+        var angleInRadians = 360;
+        var scale = [1,1];
+        var color = [Math.random(),Math.random(),Math.random(),1];
+        var args = {
+            translation:translation,
+            angleInRadians:angleInRadians,
+            scale:scale,
+        }
+
+        new Vue({
+            el:"#vm",
+            data:{
+               args:args
+            },
+            watch:{
+                args:{
+                    deep: true,
+                    handler:function () {
+                        console.log("触发了",args.angleInRadians)
+                        drawScene();
+                    }
+                }
+            }
+        })
+
+        function drawScene(){
+            resizeCanvasToDisplaySize(gl.canvas);
+
+            gl.viewport(0,0,gl.canvas.width,gl.canvas.height);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+
+            gl.useProgram(program);
+            gl.enableVertexAttribArray(positionLocaition);
+            gl.bindBuffer(gl.ARRAY_BUFFER,positionBuffer);
+
+            var size=2;
+            var type =gl.FLOAT;
+            var normalize = false;
+            var stride = 0;
+            var offset = 0;
+            gl.vertexAttribPointer(positionLocaition,size,type,normalize,stride,offset);
+
+            gl.uniform4fv(colorLocation,color);
+
+            var matrix = matrixTransform.projection(gl.canvas.clientWidth,gl.canvas.clientHeight);
+            matrix = matrixTransform.translate(matrix,args.translation[0],args.translation[1]);
+            matrix = matrixTransform.rotate(matrix,args.angleInRadians * Math.PI / 180);
+            matrix = matrixTransform.scale(matrix,args.scale[0],args.scale[1]);
+
+            gl.uniformMatrix3fv(matrixLocation,false,matrix);
+
+            var primitiveType = gl.TRIANGLES;
+            var offset = 0;
+            var count = 18;
+            gl.drawArrays(primitiveType,offset,count);
+
+        }
+        drawScene();
+    }
+
+
+
+    function setGeometry(gl){
+
+        gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([
+            0,0,
+            30,0,
+            0,150,
+
+            0,150,
+            30,0,
+            30,150,
+
+            30,0,
+            100,0,
+            30,30,
+
+            30,30,
+            100,0,
+            100,30,
+
+            30,60,
+            67,60,
+            30,90,
+
+            30,90,
+            67,60,
+            67,90
+        ]),gl.STATIC_DRAW);
+    }
+
+    main();
+</script>
+</body>
+</html>

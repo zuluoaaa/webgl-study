@@ -19,6 +19,7 @@ function createProgram(gl,vertexShader,fragmentShader) {
 
     var success = gl.getProgramParameter(program,gl.LINK_STATUS);
     if(success){
+        console.log("编译成功",vertexShader,fragmentShader)
         return program;
     }
     new Error(gl.getProgramInfoLog(program));
