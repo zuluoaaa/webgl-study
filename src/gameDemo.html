@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>游戏demo</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="renderer" content="webkit">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <style>
+        html, body, div, span, applet, object, iframe, h1, h2, h3,
+        h4, h5, h6, p, blockquote, pre, a, abbr, acronym, address,
+        big, cite, code, del, dfn, em, font, img, ins, kbd, q, s, samp,
+        small, strike, strong, sub, sup, tt, var, dl, dt, dd, ol, ul, li,
+        fieldset, form, label, legend, table, caption, tbody, tfoot,
+        thead, tr, th, td,input,textarea {
+            margin: 0;
+            padding: 0;
+            border: 0;
+            outline: 0;
+            font-weight: inherit;
+            font-style: inherit;
+            line-height: inherit;
+            border:none;
+        }
+        html,body{
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        body{
+            max-width: 750px;
+            margin:0 auto;
+            overflow: hidden;
+        }
+        canvas{
+            max-width: 750px;
+            margin: 0 auto;
+            height: 100%;
+            width: 100%;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+
+<script src="js/utils.js"></script>
+<script src="js/matrixTransform.js"></script>
+<script src="js/gameBaseConfig.js"></script>
+<script src="js/gameClick.js"></script>
+<script>
+
+    function getRandomNumber(start,end) {
+        return Math.random()*(end-start)+start;
+    }
+
+    //校验矩形是否相交
+    function isCover(rect1,rect2){
+
+        var maxX,maxY,minX,minY
+
+        maxX = rect1.x+rect1.w >= rect2.x+rect2.w ? rect1.x+rect1.w : rect2.x+rect2.w
+        maxY = rect1.y+rect1.h >= rect2.y+rect2.h ? rect1.y+rect1.h : rect2.y+rect2.h
+        minX = rect1.x <= rect2.x ? rect1.x : rect2.x
+        minY = rect1.y <= rect2.y ? rect1.y : rect2.y
+
+        if(maxX - minX <= rect1.w+rect2.w && maxY - minY <= rect1.h+rect2.h){
+            return true
+        }else{
+            return false
+        }
+    }
+
+    function main() {
+        var canvas = document.getElementById("canvas");
+        var gl = canvas.getContext("2d");
+        var viewWidth = canvas.offsetWidth;
+        var viewHeight = canvas.offsetHeight;
+        canvas.width = viewWidth;
+        canvas.height = viewHeight;
+        if(!gl){
+            alert("当前浏览器不支持，请使用现代浏览器打开本页面");
+            return;
+        }
+
+        function getRandomObstacle() {
+            var h = getRandomNumber(GameBaseConfig.obstacle.__MIN_H,GameBaseConfig.obstacle.__MAX_H);
+            var w = getRandomNumber(GameBaseConfig.obstacle.__MIN_W,GameBaseConfig.obstacle.__MAX_W);
+
+            return[w,h];
+        }
+
+        function initArgs() {
+            GameBaseConfig.obstacle.__MIN_H = GameBaseConfig.obstacle.__MIN_H/750*viewHeight;
+            GameBaseConfig.obstacle.__MIN_W = GameBaseConfig.obstacle.__MIN_W/750*viewWidth;
+            GameBaseConfig.obstacle.__MAX_W = GameBaseConfig.obstacle.__MAX_W/750*viewWidth;
+
+            GameBaseConfig.obstacle.__MAX_H = GameBaseConfig.obstacle.__MAX_H/750*viewHeight;
+            GameBaseConfig.obstacle.__MIN_OBSTACLE_INTERVAL_X_AXIS = GameBaseConfig.obstacle.__MIN_OBSTACLE_INTERVAL_X_AXIS/750*viewWidth;
+            GameBaseConfig.obstacle.__MIN_OBSTACLE_INTERVAL_Y_AXIS = GameBaseConfig.obstacle.__MIN_OBSTACLE_INTERVAL_Y_AXIS/750*viewHeight;
+
+            GameBaseConfig.obstacle.__MAX_OBSTACLE_INTERVAL_X_AXIS = GameBaseConfig.obstacle.__MAX_OBSTACLE_INTERVAL_X_AXIS/750*viewWidth;
+            GameBaseConfig.obstacle.__MAX_OBSTACLE_INTERVAL_Y_AXIS = GameBaseConfig.obstacle.__MAX_OBSTACLE_INTERVAL_Y_AXIS/750*viewHeight;
+
+            GameBaseConfig.role.vertex[2] =   GameBaseConfig.role.vertex[2]/750*viewWidth;
+            GameBaseConfig.role.vertex[3] =   GameBaseConfig.role.vertex[2]/750*viewHeight;
+
+            GameBaseConfig.role.speed =  GameBaseConfig.role.speed/750*viewHeight;
+        }
+        initArgs();
+        
+        function addObstacle() {
+            var x = getRandomNumber(0,viewWidth);
+            var wAndH = getRandomObstacle();
+            var y = -wAndH[0];
+            var num = 20;
+            for(var i=GameBaseConfig.obstacle.list.length-1;i>=0;i--){
+                var b = GameBaseConfig.obstacle.list[i];
+                if(isCover({x:x,y:y,w:wAndH[0]+GameBaseConfig.obstacle.__MIN_W,h:wAndH[1]+GameBaseConfig.obstacle.__MIN_H},b)){
+                    return false;
+                }
+                if(num<=0){
+                    break;
+                }
+                --num;
+            }
+            GameBaseConfig.obstacle.list.push({
+                texture:"rgba("+parseInt(Math.random()*255)+","+parseInt(Math.random()*255)+","+parseInt(Math.random()*255)+",1)",
+                w:wAndH[0],
+                h:wAndH[1],
+                x:x,
+                y:y,
+            });
+
+            return true;
+        }
+
+        function initRoleCoordinate(){
+            GameBaseConfig.role.coordinate = [viewWidth*0.5-(GameBaseConfig.role.vertex[2]-GameBaseConfig.role.vertex[0])/2,viewHeight-(GameBaseConfig.role.vertex[3]-GameBaseConfig.role.vertex[1])];
+        }
+
+        var willMove = [0,0,0,0];//top,right,bottom,left
+        function initRoleMove(){
+            var gameEvent = initEventGame();
+
+            document.body.addEventListener("keyup",function (e) {
+                console.log(e.keyCode);
+                if(e.keyCode===38){
+                    willMove[0] +=   GameBaseConfig.role.speed;
+                    GameBaseConfig.role.coordinate[1] -=  GameBaseConfig.role.speed;
+                }
+                else if(e.keyCode===39){
+                    willMove[1] +=   GameBaseConfig.role.speed;
+                    GameBaseConfig.role.coordinate[0] +=  GameBaseConfig.role.speed;
+                }
+                else if(e.keyCode===40){
+                    willMove[2] +=   GameBaseConfig.role.speed;
+                    GameBaseConfig.role.coordinate[1] +=  GameBaseConfig.role.speed;
+                }
+                else if(e.keyCode===37){
+                    willMove[3] +=   GameBaseConfig.role.speed;
+                    GameBaseConfig.role.coordinate[0] -=  GameBaseConfig.role.speed;
+                }
+
+            })
+        }
+
+        initRoleMove();
+
+        function drawRole() {
+/*
+            if(willMove[0]>0){
+                var top = willMove[0]/2;
+
+            }*/
+
+            gl.beginPath();
+            gl.fillStyle=GameBaseConfig.role.texture;
+            gl.fillRect(GameBaseConfig.role.coordinate[0],
+                GameBaseConfig.role.coordinate[1],
+                GameBaseConfig.role.vertex[2]-GameBaseConfig.role.vertex[0],
+                GameBaseConfig.role.vertex[3]-GameBaseConfig.role.vertex[1]);
+        }
+
+
+        function drawObstacle() {
+            for(var i in GameBaseConfig.obstacle.list){
+                var obstacle = GameBaseConfig.obstacle.list[i];
+
+                gl.beginPath();
+                gl.fillStyle=obstacle.texture;
+
+                gl.fillRect(obstacle.x,obstacle.y,obstacle.w,obstacle.h);
+            }
+        }
+
+        //碰撞检测
+        function collisionDetection() {
+            for(var i in GameBaseConfig.obstacle.list) {
+                var obstacle = GameBaseConfig.obstacle.list[i];
+                if(isCover({x: GameBaseConfig.role.coordinate[0],y: GameBaseConfig.role.coordinate[1],w:GameBaseConfig.role.vertex[2],h:GameBaseConfig.role.vertex[3]},obstacle)){
+                    console.log("YOU DIED",{x: GameBaseConfig.role.coordinate[0],y: GameBaseConfig.role.coordinate[0],w:GameBaseConfig.role.vertex[2],h:GameBaseConfig.role.vertex[3]},obstacle)
+                }
+            }
+        }
+
+
+        initRoleCoordinate();
+
+
+        var count = 0;
+
+        function drawElement() {
+            gl.clearRect(0,0,viewWidth,viewHeight);
+
+            for(var i in GameBaseConfig.obstacle.list){
+                var obstacle = GameBaseConfig.obstacle.list[i];
+
+//                if(isCover(obstacle.x,obstacle.y,obstacle.w,.obstacle.h))
+
+                if(obstacle.y>viewHeight){
+                    GameBaseConfig.obstacle.list.splice(i,1);
+                }else{
+                    obstacle.y += GameBaseConfig.bg.__SPEED;
+                }
+            }
+            count+= GameBaseConfig.bg.__SPEED;
+            //console.log("already moved :"+count);
+            addObstacle();
+            drawRole();
+            drawObstacle();
+            collisionDetection();
+
+            requestAnimationFrame(drawElement);
+        }
+
+        requestAnimationFrame(drawElement);
+    }
+    main();
+</script>
+</body>
+</html>

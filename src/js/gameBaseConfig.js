@@ -1,0 +1,39 @@
+var GameBaseConfig = {
+    status:{
+        isStart:false,
+        isOver:false,
+        isInterrupt:false,
+    },
+    role:{
+        coordinate:[0,0],
+        vertex:[0,0,50,50],
+        texture:"rgba(0,255,0,1)",
+        speed:10
+    },
+    obstacle:{
+        list:[/*{
+            texture:"rgba(255,255,0,1)",
+            w:50,
+            h:100,
+            x:0,
+            y:0,
+        }*/],
+        /**
+         * 生成障碍物所需的一系列参数
+         */
+        __MIN_H:75,//障碍物最小高度
+        __MIN_W:75,//障碍物最小宽度
+        __MAX_W:375,//障碍物最大宽度
+        __MAX_H:175,//障碍物最大高度
+        __MIN_OBSTACLE_INTERVAL_X_AXIS:200,//障碍物在X轴上的最小间隔
+        __MIN_OBSTACLE_INTERVAL_Y_AXIS:200,//在Y轴上的最小间隔
+        __MAX_OBSTACLE_INTERVAL_X_AXIS:750,//在X轴上的最大间隔
+        __MAX_OBSTACLE_INTERVAL_Y_AXIS:500,//在Y轴上的最大间隔
+        __NORMAL_TEXTTURE:[[0,255,0,100]]//图片纹理或颜色纹理
+    },
+    bg:{
+        __SPEED:1,
+        __IMAGES:[0,0,0,0],//背景图
+    }
+};
+
